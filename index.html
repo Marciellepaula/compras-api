@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendas - Chaylog</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <style>
+        @media (max-width: 640px) {
+            .form-container {
+                flex-direction: column;
+            }
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<div class="container mx-auto p-5">
+    <header class="bg-white shadow-md mb-5">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="img/Screenshot_8.png" alt="Chaylog logo" class="h-20 mr-4">
+                <span class="text-gray-800 font-semibold text-xl">Chaylog</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">Suas Encomendas</h1>
+
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Rastreamento de Remessa</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="form-container flex items-center gap-4 mb-4">
+                    <input type="text" id="trackingCode" placeholder="Informe o código da remessa" aria-label="Código da Remessa" class="border rounded-lg p-3 flex-grow">
+                    <button id="trackBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <span>Procurar</span>
+                        <div id="loadingSpinner" class="loading-spinner hidden"></div>
+                    </button>
+                </div>
+                <div id="feedbackMessage" class="text-red-500 mt-4 hidden">Por favor, preencha o campo do código de rastreamento.</div>
+            </div>
+        </section>
+    </section>
+
+    <section>
+        <div id="totalSalesList" class="mb-8"></div>
+
+
+
+    </section>
+
+    <footer class="bg-gray-50 py-6 mt-8">
+        <div class="container mx-auto px-4 text-gray-600 text-sm">
+            <div class="flex justify-between">
+                <div class="space-x-4">
+                    <a href="#" class="hover:text-gray-800">Sobre</a>
+                    <a href="#" class="hover:text-gray-800">Produtos e Serviços</a>
+                    <a href="#" class="hover:text-gray-800">Tecnologia</a>
+                    <a href="#" class="hover:text-gray-800">Sustentabilidade</a>
+                </div>
+            </div>
+            <div class="flex justify-between mt-4">
+                <p>&copy; 2024 Chaylog - Todos os direitos reservados</p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script>
+    document.getElementById('trackBtn').addEventListener('click', fetchSalesAboveTotal);
+
+    async function fetchSalesAboveTotal() {
+        const trackingCode = document.getElementById('trackingCode').value;
+        const feedbackMessage = document.getElementById('feedbackMessage');
+        const salesList = document.getElementById('totalSalesList');
+        const trackBtn = document.getElementById('trackBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+
+        resetUI(feedbackMessage, salesList);
+
+        if (!trackingCode) {
+            showFeedback(feedbackMessage, 'Por favor, preencha o campo do código de rastreamento.');
+            return;
+        }
+
+        toggleLoading(true, trackBtn, loadingSpinner);
+
+        try {
+            const response = await fetch(`http://localhost/api/vendas/cliente/${trackingCode}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) throw new Error('Erro ao buscar dados.');
+
+            const salesData = await response.json();
+            displaySales(salesData, salesList);
+
+        } catch (error) {
+            showFeedback(feedbackMessage, error.message);
+        } finally {
+            toggleLoading(false, trackBtn, loadingSpinner);
+        }
+    }
+
+    function toggleProducts(saleId) {
+    const productList = document.getElementById(`products-${saleId}`);
+    if (productList.classList.contains('hidden')) {
+        productList.classList.remove('hidden');
+    } else {
+        productList.classList.add('hidden');
+    }
+}
+
+    function resetUI(feedbackMessage, salesList) {
+        feedbackMessage.classList.add('hidden');
+        salesList.innerHTML = '';
+    }
+
+    function showFeedback(element, message) {
+        element.textContent = message;
+        element.classList.remove('hidden');
+    }
+
+    function toggleLoading(isLoading, button, spinner) {
+        if (isLoading) {
+            spinner.classList.remove('hidden');
+            button.disabled = true;
+        } else {
+            spinner.classList.add('hidden');
+            button.disabled = false;
+        }
+    }
+
+    function displaySales(salesData, salesList) {
+        if (salesData.length === 0) {
+            salesList.innerHTML = '<p class="text-yellow-500">Nenhuma venda encontrada.</p>';
+            return;
+        }
+
+        salesData.forEach(sale => {
+            const saleItem = document.createElement('div');
+       
+            saleItem.innerHTML = `
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg mb-4">
+        <table class="min-w-full bg-white">
+            <thead>
+                <tr class="w-full bg-gray-200 text-gray-600 text-sm leading-normal">
+                    <th class="py-3 px-6 text-left">Data / Hora</th>
+                    <th class="py-3 px-6 text-left">Ponto Origem</th>
+                    <th class="py-3 px-6 text-left">Status</th>
+                    <th class="py-3 px-6 text-left">Ponto Destino</th>
+                    <th class="py-3 px-6 text-left">Documento</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm font-light">
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${new Date(sale.created_at).toLocaleDateString('pt-BR')} </td>
+                    <td class="py-3 px-6 text-left">${sale.ponto_origem}</td>
+                    <td class="py-3 px-6 text-left text-red-500">${sale.status}</td>
+                    <td class="py-3 px-6 text-left">${sale.ponto_destino}</td>
+                    <td class="py-3 px-6 text-left">${sale.codigo}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mt-2" onclick="toggleProducts(${sale.id})">
+        Ver Produtos
+    </button>
+
+    <div id="products-${sale.id}" class="hidden mt-4">
+        <h4 class="font-semibold">Produtos:</h4>
+        <ul>
+            ${sale.produtos.map(produto => `
+            <li>
+                <strong>${produto.nome}</strong> - Total: R$ ${produto.preco_venda} )
+            </li>
+            `).join('')}
+        </ul>
+    </div>
+`;
+
+salesList.appendChild(saleItem);
+        });
+    }
+</script>
+
+</body>
+</html>
+
+
