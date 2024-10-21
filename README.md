@@ -20,4 +20,4 @@ Este é um **sistema de rastreamento de vendas** e **gestão de remessas** da Ch
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/seu-repositorio.git
+   git clone 
