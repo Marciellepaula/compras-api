@@ -1,6 +1,6 @@
 # Vendas - Chaylog
 
-Este é um **sistema de rastreamento de vendas** e **gestão de remessas** da Chaylog. A aplicação permite que os usuários pesquisem e rastreiem vendas inserindo um código de rastreamento ou selecionando um intervalo de datas.
+Este é um **sistema de rastreamento de vendas** e **gestão de remessas** da Chaylog. A aplicação permite que os usuários pesquisem e rastreiem vendas inserindo um código de rastreamento e selecionando um intervalo de datas.
 
 ## Funcionalidades
 
