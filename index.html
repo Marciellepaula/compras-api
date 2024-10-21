@@ -44,6 +44,8 @@
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="form-container flex items-center gap-4 mb-4">
                     <input type="text" id="trackingCode" placeholder="Informe o código da remessa" aria-label="Código da Remessa" class="border rounded-lg p-3 flex-grow">
+                    <input type="date" id="dataStart" class="border rounded-lg p-3" aria-label="Data Inicial">
+                    <input type="date" id="dataFinal" class="border rounded-lg p-3" aria-label="Data Final">
                     <button id="trackBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span>Procurar</span>
                         <div id="loadingSpinner" class="loading-spinner hidden"></div>
@@ -56,9 +58,6 @@
 
     <section>
         <div id="totalSalesList" class="mb-8"></div>
-
-
-
     </section>
 
     <footer class="bg-gray-50 py-6 mt-8">
@@ -79,27 +78,42 @@
 </div>
 
 <script>
-    document.getElementById('trackBtn').addEventListener('click', fetchSalesAboveTotal);
+    document.getElementById('trackBtn').addEventListener('click', fetchSales);
 
-    async function fetchSalesAboveTotal() {
+    async function fetchSales() {
         const trackingCode = document.getElementById('trackingCode').value;
+        const dataStart = document.getElementById('dataStart').value;
+        const dataFinal = document.getElementById('dataFinal').value;
         const feedbackMessage = document.getElementById('feedbackMessage');
         const salesList = document.getElementById('totalSalesList');
         const trackBtn = document.getElementById('trackBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
-        
 
         resetUI(feedbackMessage, salesList);
 
-        if (!trackingCode) {
-            showFeedback(feedbackMessage, 'Por favor, preencha o campo do código de rastreamento.');
+    
+        if (!trackingCode && !dataStart && !dataFinal) {
+            showFeedback(feedbackMessage, 'Por favor, preencha o código de rastreamento ou selecione uma data.');
             return;
         }
 
         toggleLoading(true, trackBtn, loadingSpinner);
 
         try {
-            const response = await fetch(`http://localhost/api/vendas/cliente/${trackingCode}`, {
+            let url;
+
+        
+            if  (dataStart && dataFinal && trackingCode )  {
+                url = `http://localhost/api/vendas/cliente/data/${trackingCode}/${dataStart}/${dataFinal}`;
+            } else if (trackingCode) {
+                url = `http://localhost/api/vendas/cliente/${trackingCode}`;
+            } else {
+                showFeedback(feedbackMessage, 'Por favor, selecione as datas de início e fim.');
+                toggleLoading(false, trackBtn, loadingSpinner);
+                return;
+            }
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,13 +134,13 @@
     }
 
     function toggleProducts(saleId) {
-    const productList = document.getElementById(`products-${saleId}`);
-    if (productList.classList.contains('hidden')) {
-        productList.classList.remove('hidden');
-    } else {
-        productList.classList.add('hidden');
+        const productList = document.getElementById(`products-${saleId}`);
+        if (productList.classList.contains('hidden')) {
+            productList.classList.remove('hidden');
+        } else {
+            productList.classList.add('hidden');
+        }
     }
-}
 
     function resetUI(feedbackMessage, salesList) {
         feedbackMessage.classList.add('hidden');
@@ -158,51 +172,61 @@
             const saleItem = document.createElement('div');
        
             saleItem.innerHTML = `
-    <div class="overflow-x-auto bg-white shadow-md rounded-lg mb-4">
-        <table class="min-w-full bg-white">
-            <thead>
-                <tr class="w-full bg-gray-200 text-gray-600 text-sm leading-normal">
-                    <th class="py-3 px-6 text-left">Data / Hora</th>
-                    <th class="py-3 px-6 text-left">Ponto Origem</th>
-                    <th class="py-3 px-6 text-left">Status</th>
-                    <th class="py-3 px-6 text-left">Ponto Destino</th>
-                    <th class="py-3 px-6 text-left">Documento</th>
-                </tr>
-            </thead>
-            <tbody class="text-gray-600 text-sm font-light">
-                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                    <td class="py-3 px-6 text-left whitespace-nowrap">${new Date(sale.created_at).toLocaleDateString('pt-BR')} </td>
-                    <td class="py-3 px-6 text-left">${sale.ponto_origem}</td>
-                    <td class="py-3 px-6 text-left text-red-500">${sale.status}</td>
-                    <td class="py-3 px-6 text-left">${sale.ponto_destino}</td>
-                    <td class="py-3 px-6 text-left">${sale.codigo}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                <div class="overflow-x-auto bg-white shadow-md rounded-lg mb-4">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="w-full bg-gray-200 text-gray-600 text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Data / Hora</th>
+                                <th class="py-3 px-6 text-left">Status</th>
+                                <th class="py-3 px-6 text-left">Documento</th>
+                                <th class="py-3 px-6 text-left">total</th>
+                                <th class="py-3 px-6 text-left">Quantidade</th>
+                                
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-600 text-sm font-light">
+                            <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                <td class="py-3 px-6 text-left whitespace-nowrap">
+                                     ${new Date(sale.created_at).toLocaleDateString('pt-BR')} ${new Date(sale.created_at).toLocaleTimeString('pt-BR')}
+                                </td>
+                                <td class="py-3 px-6 text-left text-red-500">${sale.status}</td>
+                                <td class="py-3 px-6 text-left">${sale.codigo}</td>
+                                <td class="py-3 px-6 text-left">${sale.total}</td>
+                                <td class="py-3 px-6 text-left"> ${sale.quantidade}</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
     
-    <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mt-2" onclick="toggleProducts(${sale.id})">
-        Ver Produtos
-    </button>
-
-    <div id="products-${sale.id}" class="hidden mt-4">
-        <h4 class="font-semibold">Produtos:</h4>
-        <ul>
+                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mt-2" onclick="toggleProducts(${sale.id})">
+                    Ver Produtos
+                </button>
+<div id="products-${sale.id}" class="hidden mt-4">
+    <h4 class="font-semibold">Produtos:</h4>
+    <table class="min-w-full border-collapse border border-gray-200">
+        <thead>
+            <tr>
+                <th class="border border-gray-200 px-4 py-2">Nome</th>
+                <th class="border border-gray-200 px-4 py-2">Preço unitário sem desconto</th>
+                
+            </tr>
+        </thead>
+        <tbody>
             ${sale.produtos.map(produto => `
-            <li>
-                <strong>${produto.nome}</strong> - Total: R$ ${produto.preco_venda} )
-            </li>
-            `).join('')}
-        </ul>
-    </div>
-`;
+            <tr>
+                <td class="border border-gray-200 px-4 py-2">${produto.nome}</td>
+                <td class="border border-gray-200 px-4 py-2">R$ ${produto.preco_venda}</td>
+            </tr>`).join('')}
+        </tbody>
+    </table>
+</div>
 
-salesList.appendChild(saleItem);
+            `;
+            salesList.appendChild(saleItem);
         });
     }
 </script>
 
 </body>
 </html>
-
-
